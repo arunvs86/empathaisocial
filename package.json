@@ -1,0 +1,24 @@
+{
+  "name": "twitterclone",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "author": "Reece Kenney",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.3",
+    "bcrypt": "^5.1.0",
+    "body-parser": "^1.20.1",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "mongodb": "^3.7.3",
+    "mongoose": "^5.13.15",
+    "multer": "^1.4.4",
+    "pug": "^3.0.2",
+    "socket.io": "^2.5.0"
+  }
+}
