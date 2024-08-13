@@ -8,6 +8,8 @@ const mongoose = require("./database");
 const session = require("express-session");
 const eventEmitter = require('./events');  // Import the event emitter
 
+// Use process.env.PORT to get the port number from Heroku's environment
+const PORT = process.env.PORT || 3000;
 
 const server = app.listen(port, () => console.log("Server listening on port " + port));
 const io = require("socket.io")(server, { pingTimeout: 60000 });
