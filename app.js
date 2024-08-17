@@ -1,7 +1,7 @@
 try{
 const express = require('express');
 const app = express();
-const port = 3003;
+// const port = 3003;
 const middleware = require('./middleware')
 const path = require('path')
 const bodyParser = require("body-parser")
@@ -17,7 +17,7 @@ const MongoStore = require('connect-mongo');
 // Use process.env.PORT to get the port number from Heroku's environment
 const PORT = process.env.PORT || 3000;
 
-const server = app.listen(port, () => console.log("Server listening on port " + port));
+const server = app.listen(PORT, () => console.log("Server listening on port " + PORT));
 const io = require("socket.io")(server, { pingTimeout: 60000 });
 
 app.set("view engine", "pug");
