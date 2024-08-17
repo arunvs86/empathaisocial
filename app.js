@@ -1,3 +1,4 @@
+try{
 const express = require('express');
 const app = express();
 const port = 3003;
@@ -142,3 +143,6 @@ io.on("connection", socket => {
         });
     });
 });
+}catch (error) {
+    console.error("Error starting the application:", error);
+}
