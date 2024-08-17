@@ -128,6 +128,10 @@ io.on("connection", socket => {
             socket.in(user._id).emit("message received", newMessage);
         })
     });
-    
+});
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Server listening on port " + PORT));
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+
+  
+    
