@@ -1,23 +1,39 @@
-try{
 const express = require('express');
 const app = express();
-// const port = 3003;
-const middleware = require('./middleware')
-const path = require('path')
-const bodyParser = require("body-parser")
-const mongoose = require("./database");
+const middleware = require('./middleware');
+const path = require('path');
+const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 const session = require("express-session");
 const eventEmitter = require('./events');  // Import the event emitter
-
 const MongoStore = require('connect-mongo');
 
+// MongoDB Connection URI
+const mongoURI = "mongodb+srv://arunvsoundararajan:Kamalhaasan%40123@empathaicluster.a0qtk.mongodb.net/EmpathAICluster?retryWrites=true&w=majority";
 
+// Establish MongoDB connection
+mongoose.connect(mongoURI)
+    .then(() => {
+        console.log('Database connection successful');
+    })
+    .catch((err) => {
+        console.error('Database connection error:', err);
+    });
 
+// Setup express-session with connect-mongo
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key', // Replace 'your-secret-key' with a strong secret
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: mongoURI, // Provide mongoUrl here
+        ttl: 14 * 24 * 60 * 60 // Session lifetime, optional
+    })
+}));
 
-// Use process.env.PORT to get the port number from Heroku's environment
 const PORT = process.env.PORT || 3000;
-
 const server = app.listen(PORT, () => console.log("Server listening on port " + PORT));
+
 const io = require("socket.io")(server, { pingTimeout: 60000 });
 
 app.set("view engine", "pug");
@@ -26,39 +42,19 @@ app.set("views", "views");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// app.use(session({
-//     secret: "bbq chips",
-//     resave: true,
-//     saveUninitialized: false
-// }))
+// Route Definitions
+app.get('/', middleware.requireLogin, (req, res, next) => {
+    var payload = {
+        pageTitle: "Home",
+        userLoggedIn: req.session.user,
+        userLoggedInJs: JSON.stringify(req.session.user),
+    }
 
-console.log("Starting server...");
-
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useCreateIndex: true,
-    useFindAndModify: false
-}).then(() => {
-    console.log('Database connection successful');
-}).catch((err) => {
-    console.error('Database connection error:', err);
+    res.status(200).render("home", payload);
 });
-
-
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key', // Replace 'your-secret-key' with a strong secret
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }) // Using MongoDB for session storage
-}));
 
 app.get('/terms-and-conditions', (req, res) => {
     res.render('terms-and-conditions');
-});
-
-app.get('/', (req, res) => {
-    res.render('Root route is working!');
 });
 
 // Listen to message events
@@ -76,7 +72,7 @@ eventEmitter.on('newMessage', (newMessage) => {
     });
 });
 
-// Routes
+// Additional Routes
 const loginRoute = require('./routes/loginRoutes');
 const registerRoute = require('./routes/registerRoutes');
 const logoutRoute = require('./routes/logout');
@@ -110,18 +106,6 @@ app.use("/api/chats", chatsApiRoute);
 app.use("/api/messages", messagesApiRoute);
 app.use("/api/notifications", notificationsApiRoute);
 
-app.get("/", middleware.requireLogin, (req, res, next) => {
-
-    var payload = {
-        pageTitle: "Home",
-        userLoggedIn: req.session.user,
-        userLoggedInJs: JSON.stringify(req.session.user),
-    }
-
-    res.status(200).render("home", payload);
-})
-
-
 io.on("connection", socket => {
     socket.on("setup", userData => {
         socket.join(userData._id);
@@ -147,6 +131,3 @@ io.on("connection", socket => {
         });
     });
 });
-}catch (error) {
-    console.error("Error starting the application:", error);
-}
