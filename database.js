@@ -17,7 +17,7 @@ class Database {
     }
 
     connect() {
-        mongoose.connect("mongodb+srv://empathai2024:empathai2024@empathaidb.f0cyv.mongodb.net/?retryWrites=true&w=majority&appName=EmpathAIDB")
+        mongoose.connect("mongodb+srv://arunvsoundararajan:Kamalhaasan@123@empathaicluster.a0qtk.mongodb.net/?retryWrites=true&w=majority&appName=EmpathAICluster")
         .then(() => {
             console.log("database connection successful");
         })

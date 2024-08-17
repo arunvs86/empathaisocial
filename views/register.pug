@@ -13,20 +13,32 @@ block content
             input(type="email", name="email", placeholder="Email", value=email required="")
             input#password(type="password", name="password", placeholder="Password", required="")
             input#passwordConf(type="password", name="passwordConf", placeholder="Confirm password", required="")
-            input(type="submit", value="Login")
-
+            label(for="terms")
+                input#terms(type="checkbox",name="terms" required="")
+                |  I agree to the 
+                a(href="/terms-and-conditions", target="_blank") Terms and Conditions
+            input(type="submit", value="Register")
+            
         a(href="/login") Already have an account? Login here.
     
     script.
         var passwordField = document.getElementById("password")
         var passwordConfirmField = document.getElementById("passwordConf")
         var form = document.getElementById("registerForm")
+        var termsCheckbox = document.getElementById("terms");
+
 
         function validateForm() {
-            if(passwordField.value != passwordConfirmField.value) {
-                alert("Passwords do not match. Please try again.")
+            if (passwordField.value !== passwordConfirmField.value) {
+                alert("Passwords do not match. Please try again.");
+                return;
             }
-            else {
-                form.submit();
+
+            // Check if terms and conditions are agreed
+            if (!termsCheckbox.checked) {
+                alert("You must agree to the terms and conditions to register.");
+                return;
             }
+
+            form.submit();          
         }

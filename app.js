@@ -26,6 +26,10 @@ app.use(session({
     saveUninitialized: false
 }))
 
+app.get('/terms-and-conditions', (req, res) => {
+    res.render('terms-and-conditions');
+});
+
 // Listen to message events
 eventEmitter.on('newMessage', (newMessage) => {
     const chat = newMessage.chat;
@@ -86,31 +90,6 @@ app.get("/", middleware.requireLogin, (req, res, next) => {
     res.status(200).render("home", payload);
 })
 
-// io.on("connection", socket => {
-
-//     socket.on("setup", userData => {
-//         socket.join(userData._id);
-//         socket.emit("connected");
-//     })
-
-//     socket.on("join room", room => socket.join(room));
-//     socket.on("typing", room => socket.in(room).emit("typing"));
-//     socket.on("stop typing", room => socket.in(room).emit("stop typing"));
-//     socket.on("notification received", room => socket.in(room).emit("notification received"));
-
-//     socket.on("new message", newMessage => {
-//         var chat = newMessage.chat;
-
-//         if(!chat.users) return console.log("Chat.users not defined");
-
-//         chat.users.forEach(user => {
-            
-//             if(user._id == newMessage.sender._id) return;
-//             socket.in(user._id).emit("message received", newMessage);
-//         })
-//     });
-
-// })
 
 io.on("connection", socket => {
     socket.on("setup", userData => {

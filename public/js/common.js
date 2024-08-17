@@ -302,6 +302,33 @@ $(document).on("click", ".likeButton", (event) => {
 
 })
 
+$(document).on("click", ".markAsSpamButton", (event) => {
+    console.log("working")
+    var button = $(event.target);
+    var postId = getPostIdFromElement(button);
+    
+    if(postId === undefined) return;
+
+    $.ajax({
+        url: `/api/posts/markAsSpam/${postId}`,
+        type: "PUT",
+        success: (postData) => {
+            
+            button.find("span").text(postData.spamMarks.length || "");
+
+            if(postData.spamMarkedBy.includes(userLoggedIn._id)) {
+                button.addClass("active");
+                emitNotification(postData.postedBy)
+            }
+            else {
+                button.removeClass("active");
+            }
+
+        }
+    })
+
+})
+
 $(document).on("click", ".retweetButton", (event) => {
     var button = $(event.target);
     var postId = getPostIdFromElement(button);
@@ -418,7 +445,7 @@ function createPostHtml(postData, largeFont = false) {
     if(isRetweet) {
         retweetText = `<span>
                         <i class='fas fa-retweet'></i>
-                        Retweeted by <a href='/profile/${retweetedBy}'>@${retweetedBy}</a>    
+                        Supported by <a href='/profile/${retweetedBy}'>@${retweetedBy}</a>    
                     </span>`
     }
 
@@ -483,7 +510,7 @@ function createPostHtml(postData, largeFont = false) {
                             </div>
                             <div class='postButtonContainer green'>
                                 <button class='retweetButton ${retweetButtonActiveClass}'>
-                                    <i class='fas fa-retweet'></i>
+                                    <i class='fas fa-hand-holding-heart'></i>
                                     <span>${postData.retweetUsers.length || ""}</span>
                                 </button>
                             </div>
@@ -493,6 +520,14 @@ function createPostHtml(postData, largeFont = false) {
                                     <span>${postData.likes.length || ""}</span>
                                 </button>
                             </div>
+
+                            <div class='postButtonContainer red'>
+                                <button class='markAsSpamButton'>
+                                    <i class='fas fa-exclamation-triangle'></i>
+                                    <span>${postData.likes.length || ""}</span>
+                                </button>
+                            </div>
+
                         </div>
                     </div>
                 </div>

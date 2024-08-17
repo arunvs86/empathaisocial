@@ -204,6 +204,44 @@ router.put("/:id", async (req, res, next) => {
     })
 })
 
+router.put('/markAsSpam/:id', async (req, res, next) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.session.user._id;
+
+        // Find the post by ID
+        let post = await Post.findById(postId);
+
+        // Initialize spamMarks and spamMarkedBy if undefined (for legacy posts)
+        if (typeof post.spamMarks === 'undefined') post.spamMarks = 0;
+        if (!post.spamMarkedBy) post.spamMarkedBy = [];
+
+        // Check if the user has already marked this post as spam
+        if (post.spamMarkedBy.includes(userId)) {
+            return res.status(400).send("You have already marked this post as spam.");
+        }
+
+        // Increment the spam count and add the user to spamMarkedBy
+        post.spamMarks += 1;
+        post.spamMarkedBy.push(userId);
+
+        // Optionally, check if the spamMarks threshold is met to hide the post
+        if (post.spamMarks >= 5) { // Example threshold
+            post.content = "Post hidden due to violation of policies - EmpathAI";
+            await post.save();
+        }
+
+        // Save the updated post
+        await post.save();
+        
+        res.status(200).send(post);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("An error occurred.");
+    }
+});
+
+
 async function getPosts(filter) {
     var results = await Post.find(filter)
     .populate("postedBy")
@@ -215,5 +253,7 @@ async function getPosts(filter) {
     results = await User.populate(results, { path: "replyTo.postedBy"})
     return await User.populate(results, { path: "retweetData.postedBy"});
 }
+
+
 
 module.exports = router;

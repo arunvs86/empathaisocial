@@ -10,7 +10,9 @@ const PostSchema = new Schema({
     retweetUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     retweetData: { type: Schema.Types.ObjectId, ref: 'Post' },
     replyTo: { type: Schema.Types.ObjectId, ref: 'Post' },
-    pinned: Boolean
+    pinned: Boolean,
+    spamMarks: { type: Number, default: 0 }, // New field for spam count
+    spamMarkedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }], // New field to track users who marked spam
 }, { timestamps: true });
 
 var Post = mongoose.model('Post', PostSchema);

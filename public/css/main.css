@@ -16,7 +16,7 @@
 html, body {
     height: 100%;
     min-height: 100%;
-    background-color: #F4F7FA;
+    background-color: #f4faf8;
     font-weight: 300;
 }
 
@@ -53,20 +53,27 @@ nav {
 nav a {
     padding: 10px;
     font-size: 30px;
-    width: 55px;
+    /* width: 55px; */
     height: 55px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #212529;
     position: relative;
+    font-size: 24px;
+    margin-bottom: 25px;
+}
+
+nav a i {
+    margin-left: 10px; /* Space between icon and text */
+    font-size: 18px; /* Adjust icon size */
 }
 
 nav a.blue {
     color: var(--blue);
 }
 
-nav a:hover {
+nav a i:hover {
     background-color: var(--buttonHoverBg);
     color: var(--blue);
     border-radius: 50%;
