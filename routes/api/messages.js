@@ -102,7 +102,7 @@ router.post("/", async (req, res, next) => {
                     .catch(error => console.log(error));
 
                 // Emit the message event
-                eventEmitter.emit("newMessage", message);
+                // eventEmitter.emit("newMessage", message);
 
                 // Send notifications for the message
                 insertNotifications(chat, message);

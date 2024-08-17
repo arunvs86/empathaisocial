@@ -7,9 +7,6 @@ const mongoose = require("mongoose");
 const session = require("express-session");
 const eventEmitter = require('./events');  // Import the event emitter
 const MongoStore = require('connect-mongo');
-const http = require('http');
-const server = http.createServer(app);  // Create an HTTP server for Socket.IO
-const io = require("socket.io")(server, { pingTimeout: 60000 });
 
 // MongoDB Connection URI
 const mongoURI = "mongodb+srv://arunvsoundararajan:Kamalhaasan%40123@empathaicluster.a0qtk.mongodb.net/EmpathAICluster?retryWrites=true&w=majority";
@@ -33,6 +30,11 @@ app.use(session({
         ttl: 14 * 24 * 60 * 60 // Session lifetime, optional
     })
 }));
+
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, () => console.log("Server listening on port " + PORT));
+
+const io = require("socket.io")(server, { pingTimeout: 60000 });
 
 app.set("view engine", "pug");
 app.set("views", "views");
@@ -58,7 +60,6 @@ app.get('/terms-and-conditions', (req, res) => {
 // Listen to message events
 eventEmitter.on('newMessage', (newMessage) => {
     const chat = newMessage.chat;
-    console.log(chat)
 
     if (!chat || !chat.users) {
         return console.log("Chat or chat.users not defined");
@@ -67,7 +68,7 @@ eventEmitter.on('newMessage', (newMessage) => {
     chat.users.forEach(user => {
         if (user._id == newMessage.sender._id) return;
 
-        io.in(user._id).emit("message received", newMessage); // Emit the message event
+        io.in(user._id).emit("message received", newMessage);
     });
 });
 
@@ -106,32 +107,27 @@ app.use("/api/messages", messagesApiRoute);
 app.use("/api/notifications", notificationsApiRoute);
 
 io.on("connection", socket => {
-
     socket.on("setup", userData => {
         socket.join(userData._id);
         socket.emit("connected");
-    })
+    });
 
     socket.on("join room", room => socket.join(room));
+
     socket.on("typing", room => socket.in(room).emit("typing"));
     socket.on("stop typing", room => socket.in(room).emit("stop typing"));
-    socket.on("notification received", room => socket.in(room).emit("notification received"));
 
     socket.on("new message", newMessage => {
         var chat = newMessage.chat;
 
-        if(!chat.users) return console.log("Chat.users not defined");
+        if (!chat || !chat.users) {
+            return console.log("Chat or chat.users not defined");
+        }
 
         chat.users.forEach(user => {
-            
-            if(user._id == newMessage.sender._id) return;
+            if (user._id == newMessage.sender._id) return;
+
             socket.in(user._id).emit("message received", newMessage);
-        })
+        });
     });
 });
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-
-  
-    
