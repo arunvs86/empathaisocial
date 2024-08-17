@@ -46,7 +46,7 @@ router.post("/", async (req, res, next) => {
         eventEmitter.emit('newMessage', { ...populatedUserMessage.toObject(), chat });
 
         // Step 2: If the chatbot user is part of the chat, handle the chatbot's response
-        const chatbotUserId = '66bfd81be2ed4b4ae420dcd6';  // Declare the chatbot user ID here
+        const chatbotUserId = '66c0e43216afe09f3843f8cc';  // Declare the chatbot user ID here
         const isChatbotUser = chat.users.some(user => user._id.toString() === chatbotUserId);
 
         if (isChatbotUser) {
