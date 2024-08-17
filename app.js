@@ -25,11 +25,25 @@ app.set("views", "views");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(session({
-    secret: "bbq chips",
-    resave: true,
-    saveUninitialized: false
-}))
+// app.use(session({
+//     secret: "bbq chips",
+//     resave: true,
+//     saveUninitialized: false
+// }))
+
+console.log("Starting server...");
+
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true,
+    useFindAndModify: false
+}).then(() => {
+    console.log('Database connection successful');
+}).catch((err) => {
+    console.error('Database connection error:', err);
+});
+
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key', // Replace 'your-secret-key' with a strong secret
