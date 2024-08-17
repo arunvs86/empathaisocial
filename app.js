@@ -58,7 +58,7 @@ app.get('/terms-and-conditions', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.render('login');
+    res.render('Root route is working!');
 });
 
 // Listen to message events
