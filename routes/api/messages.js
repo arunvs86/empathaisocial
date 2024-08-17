@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const bodyParser = require("body-parser");
 const User = require('../../schemas/UserSchema');
 const Chat = require('../../schemas/ChatSchema');
 const Message = require('../../schemas/MessageSchema');
 const Notification = require('../../schemas/NotificationSchema');
 const axios = require('axios');
-const eventEmitter = require('../../events');  // Import the event emitter
+const eventEmitter = require('../../events');  // Importing the EventEmitter
+
+router.use(bodyParser.urlencoded({ extended: false }));
 
 router.post("/", async (req, res, next) => {
     if (!req.body.content || !req.body.chatId) {
@@ -13,76 +16,112 @@ router.post("/", async (req, res, next) => {
         return res.sendStatus(400);
     }
 
-    try {
-        // Find the chat and populate the users
-        const chat = await Chat.findById(req.body.chatId).populate('users');
-        
-        if (!chat) {
-            console.log("Chat not found");
-            return res.sendStatus(404);
-        }
+    // Fetch the chat to determine if the message is for the chatbot
+    const chat = await Chat.findById(req.body.chatId).populate("users").catch(error => {
+        console.log(error);
+        return res.sendStatus(400);
+    });
 
-        if (!chat.users) {
-            console.log("Chat.users not defined");
+    if (!chat) {
+        console.log("Chat not found");
+        return res.sendStatus(404);
+    }
+
+    const chatbotUserId = '66c0e43216afe09f3843f8cc';  // Declare the chatbot user ID here
+    const isChatbotUser = chat.users.some(user => user._id.toString() === chatbotUserId);
+
+    if (isChatbotUser) {
+        try {
+            // Create a new message for the user's input
+            var newMessage = {
+                sender: req.session.user._id,
+                content: req.body.content,
+                chat: req.body.chatId
+            };
+
+            // Save the user's message
+            let message = await Message.create(newMessage);
+            message = await message.populate("sender");
+            message = await message.populate("chat");
+            message = await User.populate(message, { path: "chat.users" });
+
+            // Emit the user's message event
+            eventEmitter.emit("newMessage", message);
+
+            // Call the chatbot API
+            const chatbotResponse = await axios.post('https://empathaiapi-kize6gbndq-nw.a.run.app/api/ask', {
+                question: req.body.content,
+                session_id: 'session1'  // Use a session ID for context if needed
+            });
+
+            // Create a new message for the chatbot's response
+            var botMessage = {
+                sender: chatbotUserId,  // The chatbot is the sender
+                content: chatbotResponse.data.answer,  // Assuming this is where the response is
+                chat: req.body.chatId
+            };
+
+            // Save the chatbot's response message
+            let chatbotMessage = await Message.create(botMessage);
+            chatbotMessage = await chatbotMessage.populate("sender");
+            chatbotMessage = await chatbotMessage.populate("chat");
+            chatbotMessage = await User.populate(chatbotMessage, { path: "chat.users" });
+
+            // Update the chat's latest message with the bot's response
+            await Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: chatbotMessage }).catch(error => console.log(error));
+
+            // Emit the bot's message event
+            eventEmitter.emit("newMessage", chatbotMessage);
+
+            // Send notifications for both messages
+            insertNotifications(chat, message);
+            insertNotifications(chat, chatbotMessage);
+
+            // Send both the user's message and bot's message back to the client
+            res.status(201).send({ userMessage: message, botMessage: chatbotMessage });
+        } catch (error) {
+            console.log("Error interacting with chatbot API:", error);
             return res.sendStatus(500);
         }
-
-        console.log("Chat Users:", chat.users);  // Log the users in the chat
-
-        // Step 1: Handle storing the user's message
-        const requestMessage = {
+    } else {
+        // Existing logic for handling normal user messages
+        var newMessage = {
             sender: req.session.user._id,
             content: req.body.content,
             chat: req.body.chatId
         };
 
-        const savedUserMessage = await Message.create(requestMessage);
-        const populatedUserMessage = await savedUserMessage.populate("sender").execPopulate();
+        Message.create(newMessage)
+            .then(async message => {
+                message = await message.populate("sender");
+                message = await message.populate("chat");
+                message = await User.populate(message, { path: "chat.users" });
 
-        // Update the chat with the latest user message
-        await Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: populatedUserMessage });
+                // Update the chat's latest message
+                await Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: message })
+                    .catch(error => console.log(error));
 
-        // Emit the user's message with a fully populated chat object using the event emitter
-        eventEmitter.emit('newMessage', { ...populatedUserMessage.toObject(), chat });
+                // Emit the message event
+                eventEmitter.emit("newMessage", message);
 
-        // Step 2: If the chatbot user is part of the chat, handle the chatbot's response
-        const chatbotUserId = '66c0e43216afe09f3843f8cc';  // Declare the chatbot user ID here
-        const isChatbotUser = chat.users.some(user => user._id.toString() === chatbotUserId);
+                // Send notifications for the message
+                insertNotifications(chat, message);
 
-        if (isChatbotUser) {
-            const chatbotResponse = await axios.post('https://empathaiapi-kize6gbndq-nw.a.run.app/api/ask', {
-                question: req.body.content,
-                session_id: 'session1'
+                res.status(201).send(message);
+            })
+            .catch(error => {
+                console.log(error);
+                res.sendStatus(400);
             });
-
-            const botMessage = {
-                sender: chatbotUserId,
-                content: chatbotResponse.data.answer,
-                chat: req.body.chatId
-            };
-
-            console.log("Bot Message Data:", botMessage);  // Log the data passed to Message.create
-
-            const savedBotMessage = await Message.create(botMessage);
-            const populatedBotMessage = await savedBotMessage.populate("sender").execPopulate();
-
-            // Update the chat with the latest bot message
-            await Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: populatedBotMessage });
-
-            // Emit the bot's message with a fully populated chat object using the event emitter
-            eventEmitter.emit('newMessage', { ...populatedBotMessage.toObject(), chat });
-
-            // Step 3: Send both the user's and bot's messages back to the front-end
-            return res.status(201).send({ userMessage: populatedUserMessage, botMessage: populatedBotMessage });
-        } else {
-            // If the chatbot user is not in the chat, just return the user's message
-            return res.status(201).send(populatedUserMessage);
-        }
-    } catch (error) {
-        console.log("Error handling message:", error);
-        return res.sendStatus(500);
     }
 });
 
-module.exports = router;
+function insertNotifications(chat, message) {
+    chat.users.forEach(userId => {
+        if (userId == message.sender._id.toString()) return;
 
+        Notification.insertNotification(userId, message.sender._id, "newMessage", message.chat._id);
+    });
+}
+
+module.exports = router;
