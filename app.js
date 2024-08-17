@@ -57,6 +57,10 @@ app.get('/terms-and-conditions', (req, res) => {
     res.render('terms-and-conditions');
 });
 
+app.get('/', (req, res) => {
+    res.render('login');
+});
+
 // Listen to message events
 eventEmitter.on('newMessage', (newMessage) => {
     const chat = newMessage.chat;
