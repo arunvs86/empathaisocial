@@ -8,6 +8,11 @@ const mongoose = require("./database");
 const session = require("express-session");
 const eventEmitter = require('./events');  // Import the event emitter
 
+const MongoStore = require('connect-mongo');
+
+
+
+
 // Use process.env.PORT to get the port number from Heroku's environment
 const PORT = process.env.PORT || 3000;
 
@@ -25,6 +30,13 @@ app.use(session({
     resave: true,
     saveUninitialized: false
 }))
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key', // Replace 'your-secret-key' with a strong secret
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }) // Using MongoDB for session storage
+}));
 
 app.get('/terms-and-conditions', (req, res) => {
     res.render('terms-and-conditions');
