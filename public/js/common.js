@@ -163,7 +163,6 @@ $("#filePhoto").change(function(){
         reader.readAsDataURL(this.files[0]);
     }
     else {
-        console.log("nope")
     }
 })
 
@@ -302,32 +301,38 @@ $(document).on("click", ".likeButton", (event) => {
 
 })
 
-$(document).on("click", ".markAsSpamButton", (event) => {
-    console.log("working")
-    var button = $(event.target);
-    var postId = getPostIdFromElement(button);
-    
-    if(postId === undefined) return;
+$(document).on('click', '.markAsSpamButton', function(event) {
+    var postId = $(this).data('post-id');
+    $('#spamPostId').val(postId); // Set the post ID in the hidden input field
+    $('#spamReasonModal').modal('show'); // Show the modal
+});
+
+$('#submitSpamReason').click(function() {
+    var selectedReasons = [];
+    $('input[name="spamReason"]:checked').each(function() {
+        selectedReasons.push($(this).val());
+    });
+
+    var postId = $('#spamPostId').val();
+
+    if(selectedReasons.length === 0) {
+        alert("Please select at least one reason.");
+        return;
+    }
 
     $.ajax({
         url: `/api/posts/markAsSpam/${postId}`,
-        type: "PUT",
-        success: (postData) => {
-            
-            button.find("span").text(postData.spamMarks.length || "");
-
-            if(postData.spamMarkedBy.includes(userLoggedIn._id)) {
-                button.addClass("active");
-                emitNotification(postData.postedBy)
-            }
-            else {
-                button.removeClass("active");
-            }
-
+        type: 'PUT',
+        data: { spamReason: selectedReasons },
+        success: function(postData) {
+            $('#spamReasonModal').modal('hide'); // Hide the modal
+            // Optionally update the UI to reflect that the post was marked as spam
+        },error: (errorThrown) => {
+            // This block is executed if the request fails
+            alert(errorThrown);
         }
-    })
-
-})
+    });
+});
 
 $(document).on("click", ".retweetButton", (event) => {
     var button = $(event.target);
@@ -522,9 +527,9 @@ function createPostHtml(postData, largeFont = false) {
                             </div>
 
                             <div class='postButtonContainer red'>
-                                <button class='markAsSpamButton'>
+                                <button class='markAsSpamButton' data-toggle='modal' data-target='#spamReasonModal' data-post-id='${postData._id}'>
                                     <i class='fas fa-exclamation-triangle'></i>
-                                    <span>${postData.likes.length || ""}</span>
+                                    <span>${postData.spamMarks || ""}</span> <!-- Replace with the correct spam count -->
                                 </button>
                             </div>
 

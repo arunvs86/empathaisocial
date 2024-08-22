@@ -7,6 +7,7 @@ const Message = require('../../schemas/MessageSchema');
 const Notification = require('../../schemas/NotificationSchema');
 const axios = require('axios');
 const eventEmitter = require('../../events');  // Importing the EventEmitter
+const {encrypt,decrypt} = require('../../encryptionUtils')
 
 router.use(bodyParser.urlencoded({ extended: false }));
 
@@ -27,7 +28,7 @@ router.post("/", async (req, res, next) => {
         return res.sendStatus(404);
     }
 
-    const chatbotUserId = '66c0e43216afe09f3843f8cc';  // Declare the chatbot user ID here
+    const chatbotUserId = '66c61b6b9536b52c4b070caa';  // Declare the chatbot user ID here
     const isChatbotUser = chat.users.some(user => user._id.toString() === chatbotUserId);
 
     if (isChatbotUser) {
@@ -39,19 +40,26 @@ router.post("/", async (req, res, next) => {
                 chat: req.body.chatId
             };
 
+            var encryptedMessage = {
+                sender: req.session.user._id,
+                content: encrypt(req.body.content),
+                chat: req.body.chatId
+            }
+
             // Save the user's message
-            let message = await Message.create(newMessage);
+            let message = await Message.create(encryptedMessage);
+            message.content = decrypt(message.content)
             message = await message.populate("sender");
             message = await message.populate("chat");
             message = await User.populate(message, { path: "chat.users" });
 
             // Emit the user's message event
             eventEmitter.emit("newMessage", message);
-
+            sessionId =  req.session.user._id
             // Call the chatbot API
             const chatbotResponse = await axios.post('https://empathaiapi-kize6gbndq-nw.a.run.app/api/ask', {
                 question: req.body.content,
-                session_id: 'session1'  // Use a session ID for context if needed
+                session_id: sessionId  // Use a session ID for context if needed
             });
 
             // Create a new message for the chatbot's response
@@ -61,8 +69,17 @@ router.post("/", async (req, res, next) => {
                 chat: req.body.chatId
             };
 
+            encryptedBotContent = encrypt(chatbotResponse.data.answer)
+
+            var botMessageToBeSaved = {
+                sender: chatbotUserId,  // The chatbot is the sender
+                content: encryptedBotContent,  // Assuming this is where the response is
+                chat: req.body.chatId
+            }
+            
             // Save the chatbot's response message
-            let chatbotMessage = await Message.create(botMessage);
+            let chatbotMessage = await Message.create(botMessageToBeSaved);
+            chatbotMessage.content = decrypt(chatbotMessage.content)
             chatbotMessage = await chatbotMessage.populate("sender");
             chatbotMessage = await chatbotMessage.populate("chat");
             chatbotMessage = await User.populate(chatbotMessage, { path: "chat.users" });
@@ -74,7 +91,7 @@ router.post("/", async (req, res, next) => {
             eventEmitter.emit("newMessage", chatbotMessage);
 
             // Send notifications for both messages
-            insertNotifications(chat, message);
+            // insertNotifications(chat, message);
             insertNotifications(chat, chatbotMessage);
 
             // Send both the user's message and bot's message back to the client
@@ -91,8 +108,15 @@ router.post("/", async (req, res, next) => {
             chat: req.body.chatId
         };
 
-        Message.create(newMessage)
+        var encryptedMessage = {
+            sender: req.session.user._id,
+            content: encrypt(req.body.content),
+            chat: req.body.chatId
+        }
+
+        Message.create(encryptedMessage)
             .then(async message => {
+                message.content = decrypt(message.content)
                 message = await message.populate("sender");
                 message = await message.populate("chat");
                 message = await User.populate(message, { path: "chat.users" });

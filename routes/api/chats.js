@@ -6,6 +6,7 @@ const User = require('../../schemas/UserSchema');
 const Post = require('../../schemas/PostSchema');
 const Chat = require('../../schemas/ChatSchema');
 const Message = require('../../schemas/MessageSchema');
+const {encrypt,decrypt} = require('../../encryptionUtils')
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -77,10 +78,19 @@ router.put("/:chatId", async (req, res, next) => {
 })
 
 router.get("/:chatId/messages", async (req, res, next) => {
-    
     Message.find({ chat: req.params.chatId })
     .populate("sender")
-    .then(results => res.status(200).send(results))
+    .then(results => 
+        {
+            results.forEach(message => {
+                // Extract the content from the message
+                const content = message.content;
+                const decryptedContent = decrypt(content);
+                message.content = decryptedContent
+              });
+            // console.log(results)
+            res.status(200).send(results)
+        })
     .catch(error => {
         console.log(error);
         res.sendStatus(400);

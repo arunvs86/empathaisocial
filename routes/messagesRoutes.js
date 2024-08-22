@@ -39,7 +39,8 @@ router.get("/:chatId", async (req, res, next) => {
         payload.errorMessage = "Chat does not exist or you do not have permission to view it.";
         return res.status(200).render("chatPage", payload);
     }
-
+    
+    
     let chat = await Chat.findOne({ _id: chatId, users: { $elemMatch: { $eq: userId } } })
         .populate("users");
 
@@ -63,27 +64,38 @@ router.get("/:chatId", async (req, res, next) => {
 });
 
 async function getChatByUserId(userLoggedInId, otherUserId) {
-    return await Chat.findOneAndUpdate(
-        {
-            isGroupChat: false,
-            users: {
-                $size: 2,
-                $all: [
-                    { $elemMatch: { $eq: userLoggedInId } },
-                    { $elemMatch: { $eq: otherUserId } }
-                ]
-            }
-        },
-        {
-            $setOnInsert: {
-                users: [userLoggedInId, otherUserId]
-            }
-        },
-        {
-            new: true,
-            upsert: true
+    // Ensure both IDs are of ObjectId type
+    otherUserId = new mongoose.Types.ObjectId(otherUserId);
+
+    // First, try to find the chat directly without using upsert to avoid unintentional creation
+    let chat = await Chat.findOne({
+        isGroupChat: false,
+        users: {
+            $size: 2,
+            $all: [
+                { $elemMatch: { $eq: userLoggedInId } },
+                { $elemMatch: { $eq: otherUserId } }
+            ]
         }
-    ).populate("users");
+    }).populate("users");
+
+    // If chat exists, return it
+    if (chat) {
+        return chat;
+    }
+
+    // If chat doesn't exist, create a new one
+    chat = new Chat({
+        isGroupChat: false,
+        users: [userLoggedInId, otherUserId]
+    });
+
+    await chat.save();
+    await chat.populate("users").execPopulate(); // Populate after saving to ensure all user details are fetched
+
+    return chat;
 }
+
+
 
 module.exports = router;

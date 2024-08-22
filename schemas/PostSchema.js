@@ -13,6 +13,7 @@ const PostSchema = new Schema({
     pinned: Boolean,
     spamMarks: { type: Number, default: 0 }, // New field for spam count
     spamMarkedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }], // New field to track users who marked spam
+    spamReason: [{ type: String, enum: ['Harassment', 'Misinformation', 'Inappropriate Content', 'Other'], default: 'Other' }] // New field
 }, { timestamps: true });
 
 var Post = mongoose.model('Post', PostSchema);

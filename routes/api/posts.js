@@ -208,15 +208,23 @@ router.put('/markAsSpam/:id', async (req, res, next) => {
     try {
         const postId = req.params.id;
         const userId = req.session.user._id;
+        
+        let spamReasons = req.body['spamReason[]'];
 
+        // Ensure that spamReasons is always an array
+        if (!Array.isArray(spamReasons)) {
+            spamReasons = [spamReasons];
+        }
         // Find the post by ID
         let post = await Post.findById(postId);
 
         // Initialize spamMarks and spamMarkedBy if undefined (for legacy posts)
         if (typeof post.spamMarks === 'undefined') post.spamMarks = 0;
         if (!post.spamMarkedBy) post.spamMarkedBy = [];
+        if (!post.spamReason) post.spamReason = [];
 
-        // Check if the user has already marked this post as spam
+
+        //Check if the user has already marked this post as spam
         if (post.spamMarkedBy.includes(userId)) {
             return res.status(400).send("You have already marked this post as spam.");
         }
@@ -224,6 +232,8 @@ router.put('/markAsSpam/:id', async (req, res, next) => {
         // Increment the spam count and add the user to spamMarkedBy
         post.spamMarks += 1;
         post.spamMarkedBy.push(userId);
+        post.spamReason.push(...spamReasons); // Spread the array into the push method
+
 
         // Optionally, check if the spamMarks threshold is met to hide the post
         if (post.spamMarks >= 5) { // Example threshold
