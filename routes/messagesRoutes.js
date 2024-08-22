@@ -91,7 +91,7 @@ async function getChatByUserId(userLoggedInId, otherUserId) {
     });
 
     await chat.save();
-    await chat.populate("users").execPopulate(); // Populate after saving to ensure all user details are fetched
+    await chat.populate("users"); // Populate after saving to ensure all user details are fetched
 
     return chat;
 }
