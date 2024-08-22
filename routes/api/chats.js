@@ -39,10 +39,10 @@ router.post("/", async (req, res, next) => {
 })
 
 router.get("/", async (req, res, next) => {
-    Chat.find({ users: { $elemMatch: { $eq: req.session.user._id } }})
-    .populate("users")
-    .populate("latestMessage")
-    .sort({ updatedAt: -1 })
+    let chat = Chat.find({ users: { $elemMatch: { $eq: req.session.user._id } }})
+    chat = chat.populate("users")
+    chat = chat.populate("latestMessage")
+    chat = chat.sort({ updatedAt: -1 })
     .then(async results => {
 
         if(req.query.unreadOnly !== undefined && req.query.unreadOnly == "true") {
@@ -50,6 +50,12 @@ router.get("/", async (req, res, next) => {
         }
 
         results = await User.populate(results, { path: "latestMessage.sender" });
+        results.forEach(result => {
+            if(result.latestMessage && result.latestMessage.content)
+            {
+                result.latestMessage.content = decrypt(result.latestMessage.content)
+            }
+        })
         res.status(200).send(results)
     })
     .catch(error => {
