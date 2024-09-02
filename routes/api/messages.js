@@ -57,7 +57,7 @@ router.post("/", async (req, res, next) => {
             eventEmitter.emit("newMessage", message);
             sessionId =  req.session.user._id
             // Call the chatbot API
-            const chatbotResponse = await axios.post('https://empathaiapi-kize6gbndq-nw.a.run.app/api/ask', {
+            const chatbotResponse = await axios.post('https://empathaiimage-1065309265714.europe-west2.run.app/api/ask', {
                 question: req.body.content,
                 session_id: sessionId  // Use a session ID for context if needed
             });
